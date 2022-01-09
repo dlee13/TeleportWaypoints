@@ -460,6 +460,7 @@ public class TeleportWaypointEvents implements Listener {
         event.setCancelled(true);
     }
 
+    /*
     @EventHandler
     public static void switchMenu(InventoryClickEvent event) {
         if(event.isCancelled())
@@ -591,6 +592,7 @@ public class TeleportWaypointEvents implements Listener {
 
         event.setCancelled(true);
     }
+    */
 
     @EventHandler
     public static void protectBannerExplode(EntityExplodeEvent event) {

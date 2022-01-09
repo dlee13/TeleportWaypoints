@@ -244,7 +244,15 @@ public class TeleportWaypointCommands implements CommandExecutor {
                 return true;
 
             case "waypoint":
+                int page = 0;
                 if(args.length >= 1){
+                    try{
+                        page = Integer.parseInt(args[0]);
+                    }catch(NumberFormatException e){
+                        player.sendMessage("Invalid page number");
+                        return true;
+                    }
+                    /*
                     if(args[0].equalsIgnoreCase("help")) {
                         String cmdHome = WaypointConfig.get("general").getString("worldhome")+" ";
                         if(cmdHome==null)
@@ -290,6 +298,7 @@ public class TeleportWaypointCommands implements CommandExecutor {
                         }
                     }
                     return true;
+                    */
                 }
 
                 String[] former = WaypointConfig.get("player").getString(
@@ -329,17 +338,20 @@ public class TeleportWaypointCommands implements CommandExecutor {
                         WaypointConfig.get("player").getString(player.getUniqueId() +
                         ".waypoints").split(" ");
 
-                Inventory inv = Bukkit.createInventory(
-                        null, (waypointIndexes.length / 9 + 1) * 9,
-                        "Waypoints");
-                for (String index : waypointIndexes) {
-                    inv.addItem(Teleport.createShield(index, false));
+                if (page < 0 || page > ((waypointIndexes.length - 1) / 54)) {
+                    player.sendMessage("Invalid page number");
+                    return true;
                 }
-                ItemStack lantern = new ItemStack(Material.LANTERN);
-                ItemMeta lanternMeta = lantern.getItemMeta();
-                lanternMeta.setDisplayName("§6Rearrange");
-                lantern.setItemMeta(lanternMeta);
-                inv.setItem(inv.getSize() - 1, lantern);
+
+                Inventory inv = Bukkit.createInventory(
+                        null, Math.min(((waypointIndexes.length - 1) / 9 + 1) * 9, 54),
+                        "Waypoints");
+                
+                for (int i = page * 54; i < waypointIndexes.length; i++) {
+                    if (!inv.addItem(Teleport.createShield(waypointIndexes[i], false)).isEmpty()) {
+                        break;
+                    }
+                }
                 ItemStack pane = new ItemStack(Material.LIGHT_GRAY_STAINED_GLASS_PANE);
                 ItemMeta paneMeta = pane.getItemMeta();
                 paneMeta.setDisplayName(" ");
