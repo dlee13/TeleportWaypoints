@@ -5,12 +5,11 @@ import com.klin.teleportwaypoints.utility.WaypointConfig;
 import org.bukkit.*;
 import org.bukkit.block.Banner;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.banner.Pattern;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -23,7 +22,6 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.inventory.AnvilInventory;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
@@ -34,7 +32,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.ListIterator;
 
 public class TeleportWaypointEvents implements Listener {
     private static final NamespacedKey key = new NamespacedKey
@@ -43,6 +40,15 @@ public class TeleportWaypointEvents implements Listener {
     public static void clearPlayers(){
         while(!players.isEmpty())
             players.remove(0);
+    }
+
+    private static boolean isWaypoint(Block block) {
+        return block.getState() instanceof Banner &&
+                ((Banner) block.getState()).getPersistentDataContainer().has(key, PersistentDataType.STRING);
+    }
+
+    private static boolean isWaypoint(Entity entity) {
+        return entity instanceof ArmorStand && isWaypoint(entity.getLocation().subtract(0, 1.6, 0).getBlock());
     }
 
     @EventHandler
@@ -89,14 +95,27 @@ public class TeleportWaypointEvents implements Listener {
     public static void nameBannerState(BlockPlaceEvent event){
         if(event.isCancelled())
             return;
-        if(!(event.getBlockPlaced().getState() instanceof Banner) ||
-                event.getBlockPlaced().getType().toString().contains("WALL"))
+        
+        final Block blockPlaced = event.getBlockPlaced();
+
+        // disallow placing any pistons near waypoints
+        // this won't be necessary after the full plugin rewrite
+        if ((blockPlaced.getType() == Material.PISTON || blockPlaced.getType() == Material.STICKY_PISTON) &&
+                !blockPlaced.getLocation().getNearbyLivingEntities(14, 7, 14, entity -> isWaypoint(entity)).isEmpty()) {
+            event.getPlayer().sendMessage("You may not place pistons near waypoints.");
+            event.setCancelled(true);
             return;
+        }
+
+        if (!(blockPlaced.getState() instanceof Banner) || blockPlaced.getType().toString().contains("WALL")) {
+            return;
+        }
+
         Player player = event.getPlayer();
         String worldhome = WaypointConfig.get("general").getString("worldhome");
         if(worldhome==null || !player.getWorld().getName().contains(worldhome))
             return;
-        String under = event.getBlockPlaced().getWorld().getBlockAt(event.getBlockPlaced().
+        String under = blockPlaced.getWorld().getBlockAt(blockPlaced.
                 getLocation().clone().add(0,-1,0)).getType().toString();
         if(under.contains("SAND")||under.contains("CONCRETE_POWDER")||under.equals("GRAVEL")||
                 under.equals("ANVIL")||under.contains("PISTON")||under.contains("LEAVES"))
@@ -128,7 +147,7 @@ public class TeleportWaypointEvents implements Listener {
         if(bannerName==null)
             return;
         bannerName = bannerName.replace(" ","_");
-        Banner banner = (Banner) event.getBlockPlaced().getState();
+        Banner banner = (Banner) blockPlaced.getState();
         List<Pattern> patterns = banner.getPatterns();
         String patternString = "base";
         String colorString =
@@ -140,7 +159,7 @@ public class TeleportWaypointEvents implements Listener {
                 colorString += " " + pattern.getColor().toString();
             }
         }
-        Location loc = event.getBlockPlaced().getLocation();
+        Location loc = blockPlaced.getLocation();
         WaypointConfig.get("waypoint").set(index + ".name", bannerName);
         WaypointConfig.get("waypoint").set(index + ".patterns", patternString);
         WaypointConfig.get("waypoint").set(index + ".colors", colorString);
@@ -598,112 +617,12 @@ public class TeleportWaypointEvents implements Listener {
     public static void protectBannerExplode(EntityExplodeEvent event) {
         if(event.isCancelled())
             return;
-        List<Block> blocks = event.blockList();
-        for(Block block : blocks){
-            int y = block.getY();
-            if(!(block.getState() instanceof Banner) ||
-                    block.getType().toString().contains("WALL")) {
-                if (!(block.getWorld().getBlockAt(block.getX(),
-                        y+1, block.getZ()).getState() instanceof Banner) ||
-                        block.getType().toString().contains("WALL"))
-                    continue;
-                else
-                    y++;
+        for (Block block : event.blockList()) {
+            if (isWaypoint(block) || isWaypoint(block.getLocation().add(0, 1, 0).getBlock())) {
+                event.setCancelled(true);
+                return;
             }
-            Location loc = new Location(block.getWorld(),
-                    block.getX(), y, block.getZ());
-            Banner banner = (Banner) block.getWorld().getBlockAt(loc).getState();
-
-            String bannerData =
-                    banner.getPersistentDataContainer().get(key, PersistentDataType.STRING);
-            if(bannerData == null)
-                continue;
-
-            event.setCancelled(true);
-            return;
         }
-    }
-
-    @EventHandler
-    public static void protectPistonPush(BlockPistonExtendEvent event){
-        if(event.isCancelled())
-            return;
-        int x = 0;
-        int z = 0;
-        BlockFace face = event.getDirection();
-        switch(face){
-            case WEST:
-                x = -1;
-                break;
-            case EAST:
-                x = 1;
-                break;
-            case NORTH:
-                z = -1;
-                break;
-            case SOUTH:
-                z = 1;
-                break;
-            default:
-                return;
-        }
-        Location loc = new Location(event.getBlock().getWorld(), event.getBlock().getX()+x,
-                event.getBlock().getY()+1, event.getBlock().getZ()+z);
-        if (!(event.getBlock().getWorld().getBlockAt(loc).getState() instanceof Banner) ||
-                event.getBlock().getType().toString().contains("WALL")) {
-            return;
-        }
-        Banner banner = (Banner) event.getBlock().getWorld().getBlockAt(loc).getState();
-
-        String bannerData = banner.getPersistentDataContainer().get(key, PersistentDataType.STRING);
-        if(bannerData == null)
-            return;
-
-        event.setCancelled(true);
-    }
-
-    @EventHandler
-    public static void protectPistonPull(BlockPistonRetractEvent event){
-        if(event.isCancelled())
-            return;
-        if(!event.getBlock().getType().toString().contains("STICKY"))
-            return;
-        int x = 0;
-        int y = 1;
-        int z = 0;
-        BlockFace face = event.getDirection();
-        switch(face){
-            case WEST:
-                x = -1;
-                break;
-            case EAST:
-                x = 1;
-                break;
-            case NORTH:
-                z = -1;
-                break;
-            case SOUTH:
-                z = 1;
-                break;
-            case UP:
-                y = 3;
-                break;
-            default:
-                return;
-        }
-        Location loc = new Location(event.getBlock().getWorld(), event.getBlock().getX()+x,
-                event.getBlock().getY()+y, event.getBlock().getZ()+z);
-        if (!(event.getBlock().getWorld().getBlockAt(loc).getState() instanceof Banner) ||
-                event.getBlock().getType().toString().contains("WALL")) {
-            return;
-        }
-        Banner banner = (Banner) event.getBlock().getWorld().getBlockAt(loc).getState();
-
-        String bannerData = banner.getPersistentDataContainer().get(key, PersistentDataType.STRING);
-        if(bannerData == null)
-            return;
-
-        event.setCancelled(true);
     }
 
     private static int count(String string, String regex){
