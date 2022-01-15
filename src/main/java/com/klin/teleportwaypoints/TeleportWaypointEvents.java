@@ -26,6 +26,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.Vector;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -34,8 +35,10 @@ import java.util.Arrays;
 import java.util.List;
 
 public class TeleportWaypointEvents implements Listener {
-    private static final NamespacedKey key = new NamespacedKey
+    private static final NamespacedKey KEY = new NamespacedKey
             (TeleportWaypoints.getInstance(), "teleportWaypoints");
+    private static final Vector ARMOR_STAND_OFFSET = new Vector(0.5, 1.6, 0.5);
+
     private static ArrayList<String> players = new ArrayList<>();
     public static void clearPlayers(){
         while(!players.isEmpty())
@@ -44,11 +47,11 @@ public class TeleportWaypointEvents implements Listener {
 
     private static boolean isWaypoint(Block block) {
         return block.getState() instanceof Banner &&
-                ((Banner) block.getState()).getPersistentDataContainer().has(key, PersistentDataType.STRING);
+                ((Banner) block.getState()).getPersistentDataContainer().has(KEY, PersistentDataType.STRING);
     }
 
     private static boolean isWaypoint(Entity entity) {
-        return entity instanceof ArmorStand && isWaypoint(entity.getLocation().subtract(0, 1.6, 0).getBlock());
+        return entity instanceof ArmorStand && isWaypoint(entity.getLocation().subtract(ARMOR_STAND_OFFSET).getBlock());
     }
 
     @EventHandler
@@ -87,7 +90,7 @@ public class TeleportWaypointEvents implements Listener {
         ItemMeta meta = event.getCurrentItem().getItemMeta();
         if(meta==null)
             return;
-        meta.getPersistentDataContainer().set(key, PersistentDataType.STRING, rename);
+        meta.getPersistentDataContainer().set(KEY, PersistentDataType.STRING, rename);
         event.getCurrentItem().setItemMeta(meta);
     }
 
@@ -143,7 +146,7 @@ public class TeleportWaypointEvents implements Listener {
         String bannerName = null;
         if(item.hasItemMeta())
             bannerName = item.getItemMeta().getPersistentDataContainer().
-                    get(key, PersistentDataType.STRING);
+                    get(KEY, PersistentDataType.STRING);
         if(bannerName==null)
             return;
         bannerName = bannerName.replace(" ","_");
@@ -169,7 +172,7 @@ public class TeleportWaypointEvents implements Listener {
         WaypointConfig.save("waypoint");
 
         banner.getPersistentDataContainer().
-                set(key, PersistentDataType.STRING, index+"@"+bannerName);
+                set(KEY, PersistentDataType.STRING, index+"@"+bannerName);
         banner.update();
     }
 
@@ -194,7 +197,7 @@ public class TeleportWaypointEvents implements Listener {
 
         Banner banner = (Banner) block.getState();
         String contributors = banner.getPersistentDataContainer().
-                get(key,PersistentDataType.STRING);
+                get(KEY,PersistentDataType.STRING);
 
         if(contributors == null){
             player.sendMessage("Looks to be an ordinary banner");
@@ -235,7 +238,7 @@ public class TeleportWaypointEvents implements Listener {
                     contributors.
                             substring(contributors.indexOf(" "+player.getUniqueId())+37);
 
-            banner.getPersistentDataContainer().set(key, PersistentDataType.STRING,contributors);
+            banner.getPersistentDataContainer().set(KEY, PersistentDataType.STRING,contributors);
             banner.update();
 
             WaypointConfig.get("player").set(player.getUniqueId() + ".point", "1");
@@ -243,7 +246,7 @@ public class TeleportWaypointEvents implements Listener {
 
             ArmorStand stand = (ArmorStand)
                     world.getNearbyEntities(block.getLocation().clone().
-                            add(0.5, 1.6, 0.5), 0.1, 0.1, 0.1).iterator().next();
+                            add(ARMOR_STAND_OFFSET), 0.1, 0.1, 0.1).iterator().next();
             if(count(contributors, " ") == 0)
                 stand.remove();
             else
@@ -272,7 +275,7 @@ public class TeleportWaypointEvents implements Listener {
             return;
         }
         contributors = contributors + " " + player.getUniqueId();
-        banner.getPersistentDataContainer().set(key, PersistentDataType.STRING, contributors);
+        banner.getPersistentDataContainer().set(KEY, PersistentDataType.STRING, contributors);
         banner.update();
 
         WaypointConfig.get("player").set(player.getUniqueId() + ".point", "0");
@@ -283,7 +286,7 @@ public class TeleportWaypointEvents implements Listener {
                 Sound.ENTITY_EXPERIENCE_ORB_PICKUP,0.1F, 0.3F);
         if (count(contributors, " ") == 1) {
             ArmorStand stand = world.spawn(block.
-                    getLocation().clone().add(0.5, 1.6, 0.5), ArmorStand.class);
+                    getLocation().clone().add(ARMOR_STAND_OFFSET), ArmorStand.class);
             stand.setMarker(true);
             stand.setCustomName(bannerName.replace("_", " ") + " 1/"+requirement);
             stand.setInvisible(true);
@@ -298,7 +301,7 @@ public class TeleportWaypointEvents implements Listener {
             ArmorStand stand =
                     (ArmorStand) world.getNearbyEntities(event.
                     getClickedBlock().getLocation().clone().
-                            add(0.5, 1.6, 0.5), 0.1, 0.1, 0.1).iterator().next();
+                            add(ARMOR_STAND_OFFSET), 0.1, 0.1, 0.1).iterator().next();
             if(count(contributors, " ") >= Integer.parseInt(requirement)) {
                 stand.setCustomName("§6" + bannerName.replace("_", " "));
                 WaypointConfig.get("waypoint").set(index + ".status", "finished");
@@ -330,7 +333,7 @@ public class TeleportWaypointEvents implements Listener {
 
         String bannerName =
                 ((Banner)event.getClickedBlock().getState()).getPersistentDataContainer().
-                get(key, PersistentDataType.STRING);
+                get(KEY, PersistentDataType.STRING);
 
         if(bannerName == null)
             return;
@@ -396,7 +399,7 @@ public class TeleportWaypointEvents implements Listener {
         Block block = world.getBlockAt(loc);
         Banner banner = (Banner) block.getState();
 
-        String bannerData = banner.getPersistentDataContainer().get(key, PersistentDataType.STRING);
+        String bannerData = banner.getPersistentDataContainer().get(KEY, PersistentDataType.STRING);
         if(bannerData == null)
             return;
 
@@ -413,7 +416,7 @@ public class TeleportWaypointEvents implements Listener {
             String strData = bannerData.substring(bannerData.indexOf("@")+1);
             if(strData.contains(" "))
                 strData = strData.substring(0, strData.indexOf(" "));
-            bannerMeta.getPersistentDataContainer().set(key, PersistentDataType.STRING, strData);
+            bannerMeta.getPersistentDataContainer().set(KEY, PersistentDataType.STRING, strData);
             bannerItem.setItemMeta(bannerMeta);
             world.dropItemNaturally(loc, bannerItem);
         }
@@ -474,7 +477,7 @@ public class TeleportWaypointEvents implements Listener {
 
             Teleport.teleportPlayer(player, cords, TeleportWaypointCommands.getWaitlist(),
                     "Welcome to " + name,
-                    player.getPersistentDataContainer().get(key, PersistentDataType.STRING));
+                    player.getPersistentDataContainer().get(KEY, PersistentDataType.STRING));
         }
         event.setCancelled(true);
     }
@@ -631,7 +634,7 @@ public class TeleportWaypointEvents implements Listener {
     }
 
     private static void smite(Banner banner, String index){
-        String re = banner.getPersistentDataContainer().get(key, PersistentDataType.STRING);
+        String re = banner.getPersistentDataContainer().get(KEY, PersistentDataType.STRING);
         String[] refund = re.substring(re.indexOf("@")+1).split(" ");
         for(int i=1; i<refund.length; i++){
             if(!refund[i].equals("fake")) {
@@ -642,13 +645,13 @@ public class TeleportWaypointEvents implements Listener {
         WaypointConfig.get("waypoint").set(index, null);
         WaypointConfig.save("player");
         WaypointConfig.save("waypoint");
-        banner.getPersistentDataContainer().remove(key);
+        banner.getPersistentDataContainer().remove(KEY);
         banner.update();
 
         if(!banner.getWorld().getNearbyEntities(banner.getLocation().clone().
-                add(0.5, 1.6, 0.5), 0.1, 0.1, 0.1).isEmpty())
+                add(ARMOR_STAND_OFFSET), 0.1, 0.1, 0.1).isEmpty())
             (banner.getWorld().getNearbyEntities(banner.getLocation().clone().
-                    add(0.5, 1.6, 0.5), 0.1, 0.1, 0.1).iterator().next()).remove();
+                    add(ARMOR_STAND_OFFSET), 0.1, 0.1, 0.1).iterator().next()).remove();
     }
 
     @EventHandler

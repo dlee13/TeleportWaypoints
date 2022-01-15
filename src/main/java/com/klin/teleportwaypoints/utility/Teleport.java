@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public class Teleport {
-    final static NamespacedKey key =
+    final static NamespacedKey KEY =
             new NamespacedKey(TeleportWaypoints.getInstance(), "teleportWaypoints");
 
     public static void teleportPlayer(Player player, String[] cords,
@@ -30,7 +30,7 @@ public class Teleport {
         }
         waitlist.add(""+player.getUniqueId());
         BossBar bossbar = Bukkit.createBossBar(
-                key, "teleporting. . .", BarColor.GREEN, BarStyle.SEGMENTED_20);
+                KEY, "teleporting. . .", BarColor.GREEN, BarStyle.SEGMENTED_20);
         bossbar.addPlayer(player);
         bossbar.setProgress(1);
         final double health = player.getHealth();
@@ -46,7 +46,7 @@ public class Teleport {
                                 player.getLocation().getBlockZ() == playerZ)) {
                     player.sendMessage("Cancelling teleportation");
                     bossbar.removePlayer(player);
-                    Bukkit.removeBossBar(key);
+                    Bukkit.removeBossBar(KEY);
                     waitlist.remove(""+player.getUniqueId());
                     cancel();
                     return;
@@ -60,10 +60,10 @@ public class Teleport {
                     if(time!=null) {
                         WaypointConfig.get("player").set(player.getUniqueId() + ".charge", time);
                         WaypointConfig.save("player");
-                        player.getPersistentDataContainer().remove(key);
+                        player.getPersistentDataContainer().remove(KEY);
                     }
                     bossbar.removePlayer(player);
-                    Bukkit.removeBossBar(key);
+                    Bukkit.removeBossBar(KEY);
                     waitlist.remove(""+player.getUniqueId());
                     cancel();
                 }

@@ -19,7 +19,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 
 public class TeleportWaypointCommands implements CommandExecutor {
-    private static final NamespacedKey key = new NamespacedKey
+    private static final NamespacedKey KEY = new NamespacedKey
             (TeleportWaypoints.getInstance(), "teleportWaypoints");
     private static ArrayList<String> waitlist = new ArrayList<>();
     public static ArrayList<String> getWaitlist(){
@@ -123,7 +123,7 @@ public class TeleportWaypointCommands implements CommandExecutor {
                         append += " fake";
                     }
                     banner.getPersistentDataContainer().
-                            set(key, PersistentDataType.STRING, bannerName + append);
+                            set(KEY, PersistentDataType.STRING, bannerName + append);
                     banner.update();
                     player.sendMessage(bannerName.substring(bannerName.indexOf("@")+1).
                             replace("_"," ")+" faked");
@@ -325,7 +325,7 @@ public class TeleportWaypointCommands implements CommandExecutor {
                     curr[4] = Double.parseDouble(curr[4]) + 60 + "";
                     time = curr[0]+" "+curr[1]+" "+curr[2]+" "+curr[3]+" "+curr[4];
                 }
-                player.getPersistentDataContainer().set(key, PersistentDataType.STRING, time);
+                player.getPersistentDataContainer().set(KEY, PersistentDataType.STRING, time);
 
                 String waypointString =
                         WaypointConfig.get("player").getString(player.getUniqueId() +
