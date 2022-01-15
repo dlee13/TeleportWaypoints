@@ -74,10 +74,8 @@ public class TeleportWaypointEvents implements Listener {
         }
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public static void nameBannerMeta(InventoryClickEvent event){
-        if(event.isCancelled())
-            return;
         if(event.getInventory().getType() != InventoryType.ANVIL ||
                 event.getCurrentItem() == null ||
                 event.getSlot() != 2 ||
@@ -94,11 +92,8 @@ public class TeleportWaypointEvents implements Listener {
         event.getCurrentItem().setItemMeta(meta);
     }
 
-    @EventHandler(priority = EventPriority.LOWEST)
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public static void nameBannerState(BlockPlaceEvent event){
-        if(event.isCancelled())
-            return;
-        
         final Block blockPlaced = event.getBlockPlaced();
 
         // disallow placing any pistons near waypoints
@@ -379,10 +374,8 @@ public class TeleportWaypointEvents implements Listener {
         player.sendMessage("Waypoint registered");
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public static void smiteProgress(BlockBreakEvent event){
-        if(event.isCancelled())
-            return;
         int y = event.getBlock().getY();
         if(!(event.getBlock().getState() instanceof Banner) ||
                 event.getBlock().getType().toString().contains("WALL")) {
@@ -444,10 +437,8 @@ public class TeleportWaypointEvents implements Listener {
             event.setCancelled(true);
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public static void teleportWaypoint(InventoryClickEvent event){
-        if(event.isCancelled())
-            return;
         if(event.getRawSlot()>event.getView().getTopInventory().getSize() ||
                 event.getCurrentItem() == null)
             return;
@@ -616,10 +607,8 @@ public class TeleportWaypointEvents implements Listener {
     }
     */
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public static void protectBannerExplode(EntityExplodeEvent event) {
-        if(event.isCancelled())
-            return;
         for (Block block : event.blockList()) {
             if (isWaypoint(block) || isWaypoint(block.getLocation().add(0, 1, 0).getBlock())) {
                 event.setCancelled(true);
