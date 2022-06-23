@@ -2,6 +2,9 @@ package com.klin.teleportwaypoints;
 
 import com.klin.teleportwaypoints.utility.Teleport;
 import com.klin.teleportwaypoints.utility.WaypointConfig;
+
+import xyz.holocons.mc.waypoints.Exporter;
+
 import org.bukkit.*;
 import org.bukkit.block.Banner;
 import org.bukkit.command.Command;
@@ -14,6 +17,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -31,9 +35,22 @@ public class TeleportWaypointCommands implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args){
-        if(!(sender instanceof Player))
+        if(!(sender instanceof Player player)) {
+            if (cmd.getName().equalsIgnoreCase("waypoint") && args.length > 0 && args[0].equalsIgnoreCase("export")) {
+                final var exporter = new Exporter(TeleportWaypoints.getInstance());
+                try {
+                    exporter.exportTravelers(WaypointConfig.get("player"));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                try {
+                    exporter.exportWaypoints(WaypointConfig.get("waypoint"));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
             return true;
-        Player player = (Player) sender;
+        }
 
         if(player.isOp()) {
             switch (cmd.getName().toLowerCase()) {
